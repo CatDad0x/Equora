@@ -3,3 +3,9 @@ contracts/cache/
 contracts/broadcast/*/31337/
 .env
 node_modules/
+web/.next/
+web/.env.local
+web/next-env.d.ts
+*.tsbuildinfo
+contracts/.env
+keeper/.env

@@ -2,7 +2,7 @@
 
 **Local-currency access to US equities, with optional FX hedging and borrowing against your position.**
 
-Status: v0.2 (revised after spec review; Phase 1 contracts implemented) · Target: working demo on **Base Sepolia** · Audience: AUDD / AUDM teams, investors, partners
+Status: v0.3 (all build phases implemented and tested locally; awaiting Base Sepolia deployment) · Target: working demo on **Base Sepolia** · Audience: AUDD / AUDM teams, investors, partners
 
 ---
 
@@ -377,6 +377,16 @@ Status: implemented in `contracts/`, 66 tests passing (unit + fuzz), ~91% line c
 8. Oracle claims narrowed; Morpho scaling formula made explicit (§4.9).
 9. Queue: excluded escrow, ownership, cancellation, limits, refunds, push settlement; not ERC-7540 compliant (§4.6).
 10. Oracle status view, fail-closed staleness, confidence check, override recovery, clone pattern, conditional single-signature flows, TVL de-duplication, simulated labels, mAUDC flagged (§4.3, §4.7, §4.8, §8, §12).
+
+**v0.3:** implementation decisions made while building Phases 2–6.
+1. **Tracked internal balances** in the vault: donations no longer move NAV or the vault-share oracle; `skim` sweeps them to the treasury.
+2. **Vault-share oracle uses realisable value** (`previewRedeem` of one share, net of exit cost), not NAV.
+3. **DemoPyth (default):** the keeper pushes simulated prices with a mean-reverting random walk, so the demo works 24/7 and without a paid Pyth API key (Pyth Core now requires one). Real Pyth is a deploy-time option. The market is forced open by default for the same reason.
+4. **No Ponder indexer.** The web app reads `NavSnapshot` and request events directly from the chain (chunked `getLogs`). This is enough for a demo; add an indexer if history grows.
+5. **Gas sponsorship via a relayer route** (`/api/onboard`): sends a small amount of test ETH plus a sponsored faucet claim. Works with any wallet, including Privy embedded wallets, without paymaster setup.
+6. **Access:** injected wallets, Coinbase Smart Wallet (passkey) and, when `NEXT_PUBLIC_PRIVY_APP_ID` is set, Privy email sign-in.
+7. **Keeper lanes:** prices and liquidations run in a fast lane, separate from queue settlement, rebalancing, rolls and pokes (nonce manager). Locally, a shock led to a liquidation in about 7 seconds.
+8. **Router drops queued-deposit helper:** queued deposits call the vault directly so the user owns (and can cancel) the request.
 
 ## Appendix A: Feed config (fill during Phase 3)
 
