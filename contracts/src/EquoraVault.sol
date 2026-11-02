@@ -95,6 +95,11 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
     uint256 public depositHead;
     uint256 public redeemHead;
 
+    /// @dev Tracked (managed) balances. NAV uses these, never raw balanceOf, so tokens sent
+    /// directly to the vault do not move share price. Surplus can be swept with `skim`.
+    uint256 internal _cash;
+    mapping(address => uint256) public held;
+
     // ------------------------------------------------------------------ events / errors
 
     event NavSnapshot(
@@ -185,7 +190,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
     /// @notice Total USD value (18 dp) of equities held.
     function equityValueUsd() public view returns (uint256 usd) {
         for (uint256 i; i < _equities.length; ++i) {
-            uint256 bal = IERC20(_equities[i]).balanceOf(address(this));
+            uint256 bal = held[_equities[i]];
             if (bal == 0) continue;
             (uint256 px,) = oracle.equityPriceUsd(_equities[i]);
             usd += bal * px / 1e18;
@@ -198,9 +203,9 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         return usd == 0 ? 0 : exchange.usdToLocal(asset(), usd);
     }
 
-    /// @notice Local stable held, excluding escrowed queued deposits.
+    /// @notice Tracked local-stable cash (excludes queued-deposit escrow and stray donations).
     function cash() public view returns (uint256) {
-        return IERC20(asset()).balanceOf(address(this)) - pendingDepositAssets;
+        return _cash;
     }
 
     function hedgeMtm() public view returns (int256) {
@@ -306,6 +311,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         super._deposit(caller, receiver, assets, shares);
+        _cash += assets;
         _invest(assets);
     }
 
@@ -314,6 +320,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         override
     {
         _prepareRedeem(shares, assets);
+        _cash -= assets;
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -386,6 +393,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
             }
             delete depositQueue[id];
             pendingDepositAssets -= r.assets;
+            _cash += r.assets;
             _mint(r.receiver, shares);
             _invest(r.assets);
             emit DepositSettled(id, r.receiver, r.assets, shares);
@@ -404,6 +412,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
             _prepareRedeem(r.shares, assets);
             pendingRedeemShares -= r.shares;
             _burn(address(this), r.shares);
+            _cash -= assets;
             IERC20(asset()).safeTransfer(r.receiver, assets);
             emit RedeemSettled(id, r.receiver, r.shares, assets);
         }
@@ -459,6 +468,13 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         _snapshot();
     }
 
+    /// @notice Sweep tokens sent directly to the vault (not part of tracked balances) to the treasury.
+    function skim(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 tracked = token == asset() ? _cash + pendingDepositAssets : held[token];
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        if (bal > tracked) IERC20(token).safeTransfer(treasury, bal - tracked);
+    }
+
     /// @notice Accrue fees and emit a NAV snapshot (for charts). Anyone may call.
     function poke() external {
         _accrueFee();
@@ -477,7 +493,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         address a = asset();
         for (uint256 i; i < _equities.length; ++i) {
             uint256 amt = amount * _weights[i] / BPS;
-            if (amt > 0) exchange.buyEquity(a, _equities[i], amt, 0, address(this));
+            if (amt > 0) _buy(a, _equities[i], amt);
         }
     }
 
@@ -487,9 +503,9 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         uint256 supply = totalSupply();
         address a = asset();
         for (uint256 i; i < _equities.length; ++i) {
-            uint256 bal = IERC20(_equities[i]).balanceOf(address(this));
+            uint256 bal = held[_equities[i]];
             uint256 qty = bal.mulDiv(shares, supply);
-            if (qty > 0) exchange.sellEquity(_equities[i], a, qty, 0, address(this));
+            if (qty > 0) _sell(a, _equities[i], qty);
         }
         if (hedged) _syncHedge();
         _ensureCash(assetsOut);
@@ -506,9 +522,9 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         uint256 fracWad = shortfall >= eq ? 1e18 : shortfall.mulDiv(1e18, eq, Math.Rounding.Ceil);
         address a = asset();
         for (uint256 i; i < _equities.length; ++i) {
-            uint256 bal = IERC20(_equities[i]).balanceOf(address(this));
+            uint256 bal = held[_equities[i]];
             uint256 qty = Math.min(bal, bal.mulDiv(fracWad, 1e18, Math.Rounding.Ceil));
-            if (qty > 0) exchange.sellEquity(_equities[i], a, qty, 0, address(this));
+            if (qty > 0) _sell(a, _equities[i], qty);
         }
     }
 
@@ -519,7 +535,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         uint256 total;
         for (uint256 i; i < n; ++i) {
             (pxs[i],) = oracle.equityPriceUsd(_equities[i]);
-            vals[i] = IERC20(_equities[i]).balanceOf(address(this)) * pxs[i] / 1e18;
+            vals[i] = held[_equities[i]] * pxs[i] / 1e18;
             total += vals[i];
         }
         if (total == 0) return;
@@ -542,7 +558,7 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
             uint256 target = total * _weights[i] / BPS;
             if (vals[i] > target) {
                 uint256 qty = (vals[i] - target) * 1e18 / pxs[i];
-                exchange.sellEquity(_equities[i], a, qty, 0, address(this));
+                _sell(a, _equities[i], qty);
             }
         }
         uint256 raised = cash() - cashBefore;
@@ -557,9 +573,21 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
             uint256 target = total * _weights[i] / BPS;
             if (vals[i] < target) {
                 uint256 amt = raised.mulDiv(target - vals[i], deficitTotal);
-                if (amt > 0) exchange.buyEquity(a, _equities[i], amt, 0, address(this));
+                if (amt > 0) _buy(a, _equities[i], amt);
             }
         }
+    }
+
+    function _buy(address a, address equity, uint256 amt) internal {
+        uint256 out = exchange.buyEquity(a, equity, amt, 0, address(this));
+        _cash -= amt;
+        held[equity] += out;
+    }
+
+    function _sell(address a, address equity, uint256 qty) internal {
+        uint256 out = exchange.sellEquity(equity, a, qty, 0, address(this));
+        held[equity] -= qty;
+        _cash += out;
     }
 
     // ------------------------------------------------------------------ internal: hedge
@@ -580,7 +608,9 @@ contract EquoraVault is Initializable, ERC4626Upgradeable, AccessControlUpgradea
     function _syncHedge() internal {
         int256 m = hedgeBook.mtmAssets(address(this));
         if (m < 0) _ensureCash(uint256(-m));
-        hedgeBook.adjust(_targetNotional());
+        int256 realised = hedgeBook.adjust(_targetNotional());
+        if (realised > 0) _cash += uint256(realised);
+        else if (realised < 0) _cash -= uint256(-realised);
     }
 
     // ------------------------------------------------------------------ internal: fees / events

@@ -380,6 +380,34 @@ contract EquoraVaultTest is BaseTest {
         audHedgedIndex.redeem(s, bob, alice);
     }
 
+    // ------------------------------------------------------------------ donations
+
+    function test_donationDoesNotMoveSharePrice() public {
+        _deposit(audHedgedIndex, alice, DEP);
+        uint256 nav0 = audHedgedIndex.navPerShare();
+        audd.mint(address(audHedgedIndex), 1_000_000e6); // stray stable
+        spy.grantRole(spy.MINTER_ROLE(), admin);
+        spy.mint(address(audHedgedIndex), 100e18); // stray equity
+        assertEq(audHedgedIndex.navPerShare(), nav0);
+
+        uint256 t0 = audd.balanceOf(treasury);
+        audHedgedIndex.skim(address(audd));
+        audHedgedIndex.skim(address(spy));
+        assertEq(audd.balanceOf(treasury) - t0, 1_000_000e6);
+        assertEq(spy.balanceOf(treasury), 100e18);
+        assertEq(audHedgedIndex.navPerShare(), nav0);
+    }
+
+    function test_skimKeepsQueuedEscrow() public {
+        oracle.setMarketMode(OracleHub.MarketMode.FORCE_CLOSED);
+        vm.startPrank(alice);
+        audd.approve(address(audHedgedIndex), DEP);
+        audHedgedIndex.requestDeposit(DEP, alice, 0);
+        vm.stopPrank();
+        audHedgedIndex.skim(address(audd));
+        assertEq(audd.balanceOf(address(audHedgedIndex)), DEP);
+    }
+
     // ------------------------------------------------------------------ fuzz
 
     /// NAV equals equities (mid, in AUD) + cash + hedge MTM after arbitrary price moves.
