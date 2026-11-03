@@ -2,7 +2,7 @@
 
 Equora is a **testnet demo** protocol on Base Sepolia. Users deposit local-currency stablecoins (AUD, EUR, INR) into ERC-4626 vaults that hold tokenized US equities, optionally FX-hedged, and borrow against positions via Morpho Blue. All assets are mock tokens. The goal is a working demo for the AUDD / AUDM teams.
 
-Read `SPEC.md` for the design (v0.3; §13 is the revision log) and `README.md` for deployment.
+Read `HANDOFF.md` first (context from the planning chat), then `SPEC.md` for the design (v0.3; §13 is the revision log) and `README.md` for deployment.
 
 ## Status
 All build phases are done and tested locally (contracts, lending, deploy script, keeper, web). Remaining: deploy to Base Sepolia with the owner's keys, host the keeper and web app, and record the demo walkthrough.
