@@ -126,7 +126,7 @@ export default function Portfolio() {
                       <td className="num"><strong>{money(r.value, s, 0)}</strong></td>
                       <td className={`num ${change >= 0 ? "pos" : "neg"}`}>{Number.isFinite(change) ? pct(change, 1, true) : "—"}</td>
                       <td className="num" style={{ whiteSpace: "nowrap", paddingRight: 18 }}>
-                        <Link href={`/vaults/${r.s.info.address}`} className="btn ghost small" style={{ marginRight: 6 }}>Sell</Link>
+                        <Link href={`/sell?v=${r.s.info.address}`} className="btn ghost small" style={{ marginRight: 6 }}>Sell</Link>
                         <Link href="/invest" className="btn ghost small">Buy</Link>
                       </td>
                     </tr>
@@ -160,7 +160,7 @@ export default function Portfolio() {
                     </span>
                   </div>
                 </div>
-                <div><Link href="/borrow" className="btn ghost small"><Mark />Manage loan</Link></div>
+                <div><Link href={`/borrow/manage?m=${l.m.id}`} className="btn ghost small"><Mark />Manage loan</Link></div>
               </section>
             );
           })}
