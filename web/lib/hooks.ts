@@ -198,7 +198,7 @@ export function readableError(e: unknown): string {
     [/User rejected|denied/i, "You cancelled the transaction in your wallet."],
     [/MarketClosed/, "US markets are closed. Queue the request instead, or try again at the next open."],
     [/OpeningLtvExceeded/, "That borrow is above the opening limit for this market. Borrow less or add collateral."],
-    [/BorrowingDisabled/, "Borrowing through Equora is not enabled for this market."],
+    [/BorrowingDisabled/, "Borrowing through Parallel Markets is not enabled for this market."],
     [/CoolingDown/, "Test funds were already claimed in the last 24 hours."],
     [/StalePrice/, "Prices are updating. Try again in a minute."],
     [/insufficient|exceeds balance|InsufficientBalance/i, "Your balance is too low for this amount."],
