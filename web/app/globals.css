@@ -1,41 +1,45 @@
 :root {
-  /* Polymer-note paper, ink, and the two currencies the product sits between. */
-  --paper: #f1f4f2;
-  --paper-2: #e6ebe8;
-  --ink: #142034;
-  --ink-2: #34425a;
-  --muted: #5d6a7c;
-  --line: #cfd8d3;
-  --gold: #d99d1b; /* home currency (AUD polymer gold) */
-  --gold-soft: #f6e3b4;
-  --green: #2c6a4c; /* USD exposure (greenback) */
-  --green-soft: #d4e6dc;
-  --red: #b23a2a;
-  --red-soft: #f3d9d4;
-  --focus: #2457c5;
+  /* Parallel Markets: cool white paper, hairlines, and an accent that follows the user's currency. */
+  --paper: #f6f8fa;
+  --paper-2: #ebeff4;
+  --surface: #ffffff;
+  --ink: #14222e;
+  --ink-2: #2a3542;
+  --muted: #4d5966;
+  --faint: #808b97;
+  --line: #dfe4ea;
+  --line-2: #eaeef2;
+  --border: #c2cbd5;
+  /* Currency accent (A$ teal by default; [data-currency] below switches it). */
+  --accent: #0f6e62;
+  --accent-text: #0b5a50;
+  --accent-soft: #dceeea;
+  /* Legacy names used by the older pages: home currency = accent, USD exposure = ink. */
+  --gold: var(--accent);
+  --gold-soft: var(--accent-soft);
+  --green: #0b5a50;
+  --green-soft: #dceeea;
+  --red: #8e3b2e;
+  --red-soft: #fbeceb;
+  --amber: #9a5b12;
+  --amber-soft: #fbf1e4;
+  --focus: #14222e;
   --radius-s: 6px;
-  --radius-m: 10px;
-  --font: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-m: 8px;
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1621;
-    --paper-2: #17202e;
-    --ink: #e7edf3;
-    --ink-2: #c3ccd8;
-    --muted: #8b97a8;
-    --line: #2a3546;
-    --gold: #f0b93a;
-    --gold-soft: #3b2f12;
-    --green: #5cb48a;
-    --green-soft: #15302a;
-    --red: #e46c5a;
-    --red-soft: #3a1c18;
-    --focus: #7aa2ff;
-    color-scheme: dark;
-  }
+[data-currency="EUR"] {
+  --accent: #2e5aac;
+  --accent-text: #22457f;
+  --accent-soft: #e3eaf7;
+}
+
+[data-currency="INR"] {
+  --accent: #a23a78;
+  --accent-text: #7d2b5c;
+  --accent-soft: #f6e3ee;
 }
 
 * {
@@ -85,13 +89,14 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(2.2rem, 5vw, 3.6rem);
-  font-weight: 800;
+  font-size: clamp(1.9rem, 3.2vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
 }
 
 h2 {
-  font-size: 1.6rem;
-  font-weight: 750;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 h3 {
@@ -244,10 +249,10 @@ p {
 
 .btn {
   font: inherit;
-  font-weight: 650;
-  border: 1px solid var(--ink);
-  background: var(--ink);
-  color: var(--paper);
+  font-weight: 700;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #ffffff;
   padding: 10px 16px;
   border-radius: var(--radius-s);
   cursor: pointer;
@@ -260,7 +265,7 @@ p {
 }
 
 .btn:hover {
-  background: var(--ink-2);
+  background: var(--accent-text);
 }
 
 .btn:disabled {
@@ -271,7 +276,7 @@ p {
 .btn.secondary {
   background: transparent;
   color: var(--ink);
-  border-color: var(--line);
+  border-color: var(--border);
 }
 
 .btn.secondary:hover {
@@ -389,9 +394,10 @@ select:focus {
 }
 
 .seg button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--paper);
-  font-weight: 650;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 /* ---------------------------------------------------------------- panels + tables */
@@ -400,7 +406,7 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
   padding: 20px;
-  background: var(--paper);
+  background: var(--surface);
 }
 
 .panel.quiet {

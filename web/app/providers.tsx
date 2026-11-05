@@ -28,7 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
           embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
           defaultChain: chain,
           supportedChains: [chain],
-          appearance: { theme: "light", accentColor: "#142034" },
+          appearance: { theme: "light", accentColor: "#0F6E62" },
         }}
       >
         <QueryClientProvider client={queryClient}>
@@ -51,7 +51,7 @@ function PlainWagmi({ children, queryClient }: { children: ReactNode; queryClien
       ssr: true,
       connectors: [
         injected(),
-        coinbaseWallet({ appName: "Equora (testnet demo)", preference: "smartWalletOnly" }),
+        coinbaseWallet({ appName: "Parallel Markets (testnet demo)", preference: "smartWalletOnly" }),
         ...(IS_LOCAL ? [mock({ accounts: LOCAL_ACCOUNTS, features: { reconnect: true } })] : []),
       ],
     }),

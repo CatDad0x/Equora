@@ -41,7 +41,7 @@ export default function Borrow() {
       {st && <MarketPanel st={st} onDone={refetch} />}
 
       <p className="notice small" style={{ maxWidth: "80ch" }}>
-        Limits are illustrative, pending proper risk calibration. Equora&rsquo;s app pauses new borrowing while US
+        Limits are illustrative, pending proper risk calibration. The Parallel Markets app pauses new borrowing while US
         markets are closed and caps the opening loan below the liquidation level. These are app-level controls: the
         underlying Morpho Blue market does not enforce them.
       </p>
@@ -103,7 +103,7 @@ function MarketPanel({ st, onDone }: { st: MarketState; onDone: () => void }) {
   async function borrow() {
     const ok = await steps.run(
       [
-        { label: "Allowing Equora to borrow for you", address: deployment.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, true], skip: st.user.authorized || borrowAmt === 0n },
+        { label: "Allowing Parallel Markets to borrow for you", address: deployment.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, true], skip: st.user.authorized || borrowAmt === 0n },
         { label: "Approving collateral", address: collToken, abi: tokenAbi, functionName: "approve", args: [deployment.router, collAmt], skip: collAmt === 0n || ((allowColl as bigint | undefined) ?? 0n) >= collAmt },
         { label: borrowAmt > 0n ? "Borrowing" : "Adding collateral", address: deployment.router, abi: routerAbi, functionName: "supplyCollateralAndBorrow", args: [mp, collAmt, borrowAmt] },
       ],
@@ -116,7 +116,7 @@ function MarketPanel({ st, onDone }: { st: MarketState; onDone: () => void }) {
     const need = all ? BigInt(Math.ceil(st.user.borrowAssets * 1.001 * 1e6)) + 1_000n : repayAmt;
     const ok = await steps.run(
       [
-        { label: "Allowing Equora to manage your loan", address: deployment.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, true], skip: st.user.authorized || withdrawAmt === 0n },
+        { label: "Allowing Parallel Markets to manage your loan", address: deployment.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, true], skip: st.user.authorized || withdrawAmt === 0n },
         { label: "Approving repayment", address: st.m.loanToken, abi: tokenAbi, functionName: "approve", args: [deployment.router, need], skip: need === 0n || ((allowLoan as bigint | undefined) ?? 0n) >= need },
         { label: all ? "Repaying in full" : "Repaying", address: deployment.router, abi: routerAbi, functionName: "repayAndWithdraw", args: [mp, all ? 0n : repayAmt, all, withdrawAmt] },
       ],
